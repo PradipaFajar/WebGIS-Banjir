@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<!-- Coding By CodingNepal - codingnepalweb.com -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Login & Registration Form</title>
+  <!---Custom CSS File--->
+  <link rel="stylesheet" href="./css/login.css">
+</head>
+<body>
+  <div class="container">
+    <input type="checkbox" id="check">
+    <div class="login form">
+      <header>Login</header>
+      <form action="POST">
+        <input id="username" type="text" placeholder="Enter your username">
+        <input id="password" type="password" placeholder="Enter your password">
+        <input id="submit" type="button" class="button" value="Login">
+      </form>
+    </div>
+    <div class="registration form">
+      <header>Signup</header>
+      <form action="#">
+        <input type="text" placeholder="Enter your email">
+        <input type="password" placeholder="Create a password">
+        <input type="password" placeholder="Confirm your password">
+        <input type="button" class="button" value="Signup">
+      </form>
+      <div class="signup">
+        <span class="signup">
+         <label for="check">Login</label>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = {
+        username: document.querySelector("#username"),
+        password: document.querySelector("#password"),
+        submit: document.querySelector("#submit"),
+        messages: document.getElementById("form-messages"),
+    };
+
+    let button = form.submit.addEventListener("click", (e) => {
+        e.preventDefault();
+        const login = "http://localhost:3030/api/auth/login";
+
+        fetch(login, {
+            method: "POST",
+                headers: {
+                Accept: "application/json, text/plain, */*",
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                username: form.username.value,
+                password: form.password.value,
+            }),
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                console.log(data);
+                console.log('tetre')
+                // code here //
+                    if (data.status == false) {
+                        alert("Error Password or Username"); /*displays error message*/
+                    } else {
+                        window.location.href = 'admin.html' /*opens the target page while Id & password matches*/
+                    }
+                })
+            .catch((err) => {
+                console.log(err);
+            });
+    });
+  </script>
+</body>
+</html>
+

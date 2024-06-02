@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dashboard Admin</title>
+
+    <!-- CSS FILES -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100;300;400;700;900&display=swap" rel="stylesheet">
+
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/bootstrap-icons.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/magnific-popup.css">
+
+    <link href="css/aos.css" rel="stylesheet">
+
+    <link href="css/general.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="" />
+
+   
+</head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/dt-1.10.20/datatables.min.css" />
+
+<script type="text/javascript" src="https://cdn.datatables.net/v/dt/dt-1.10.20/datatables.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+<body>
+
+        <h2 class="mb-5 text-center">Dashboard Admin</h2>
+
+    <main>
+        <section class="section-padding pb-0" id="portfolio" style="margin-left: 1em; margin-bottom: 1em; ">
+            
+            <input type="date" id="date-picker">
+            <button id="btn-kota" onclick="">Kota</button>
+            <button id="btn-kecamatan" onclick="">Kecamatan</button>
+            <button id="btn-kelurahan" onclick="">Kelurahan</button>
+            <br/>
+        </section>
+
+
+        <style>
+            #map {
+                height: 420px;
+            }
+        </style>
+        <section class="google-map">
+            <div id="map"></div>
+
+        </section>
+        <table id="myTable"></table>
+
+    </main>
+    <script>
+        var defmap = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        });
+        var OpenTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            maxZoom: 17,
+            attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+        });
+
+        var google = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+
+        var googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+
+        var map = L.map('map', { center: [-7.567461, 110.821216], zoom: 13.5, layers: [google] });
+
+        const bl = {
+            'Open Street Map': defmap, 'Open Topographic': OpenTopoMap, "Google Maps": google, "Google Satellite": googleSat
+        }
+
+        L.control.layers(bl).addTo(map)
+
+        const BASE_URI = 'http://localhost:3030/api/';
+        let datePicker;
+        const field = document.querySelector('#date-picker');
+        var layer;
+        field.addEventListener('input', async function () {
+            console.log('hehe')
+            datePicker = field.value;
+            console.log(datePicker)
+            const response = await fetch(BASE_URI + 'sungai/getGeomByDate?q=' + datePicker, {
+                method: "GET", // or 'PUT'
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+            const result = await response.json();
+            console.log(result)
+            console.log('dd')
+
+            if (result?.data?.geom) {
+                console.log('input new layer')
+                map.eachLayer(function(layer) {
+                    if (!!layer.toGeoJSON) {
+                        map.removeLayer(layer);
+                    }
+                });
+
+                var myLines = [result.data.geom]
+
+                layer = L.geoJSON(myLines).addTo(map);
+            } else{
+                map.eachLayer(function(layer) {
+                    if (!!layer.toGeoJSON) {
+                        map.removeLayer(layer);
+                    }
+                });
+            }
+        }); 
+
+        const getData = async() => {
+            const response = await fetch('http://localhost:3030/api/sungai/getAllData');
+            const data = await response.json();
+            console.log(data)
+            table = $('#myTable').DataTable({
+                ajax: 'http://localhost:3030/api/sungai/getAllData',
+                responsive: true,
+                data: data,
+                dataSrc: data,
+                columns: [
+                    {
+                        data: 'gid', title: 'Id'
+                    },
+                    {
+                        data: 'name', title: 'Nama Sungai'
+                    },
+                    {
+                        data: 'range_max', title: 'Remarks'
+                    },
+                    {
+                        data: 'date', title: 'Tanggal'
+                    },
+                    {
+                        data: 'is_approved',
+                        title: "",
+                        render: function(data, type, row) {
+                            return "<input onclick='onChangeCheckbox();' type='checkbox' " + (row.is_approved ? 'checked' : '') + ">"
+                        }
+                        
+                    },
+                    { title: "", "defaultContent": "<button onclick='deleteItem();'>Delete</button>" }
+                ],
+            });
+        }
+
+        const gid = []
+        
+        $('#myTable').on('click', 'tbody td:first-child', async function() {
+            const id = this.textContent
+            //get textContent of the TD
+            console.log('TD cell textContent : ', id)
+
+            gid.push(id);
+
+            console.log('hehe')
+            const response = await fetch(BASE_URI + 'sungai/getGeomById/' + id, {
+                method: "GET", // or 'PUT'
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+            const result = await response.json();
+            console.log(result)
+            console.log('dd')
+
+            if (result?.data?.geom) {
+                console.log('input new layer')
+                map.eachLayer(function(layer) {
+                    if (!!layer.toGeoJSON) {
+                        map.removeLayer(layer);
+                    }
+                });
+
+                var myLines = [result.data.geom]
+
+                layer = L.geoJSON(myLines).addTo(map);
+            } else{
+                map.eachLayer(function(layer) {
+                    if (!!layer.toGeoJSON) {
+                        map.removeLayer(layer);
+                    }
+                });
+            }
+        })
+
+        const approveData = async(id) => {
+            const response = await fetch(BASE_URI + 'sungai/approve?id=' + id, {
+                method: "GET", // or 'PUT'
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+        }
+
+        const unApproveData = async(id) => {
+            const response = await fetch(BASE_URI + 'sungai/reject?id=' + id, {
+                method: "GET", // or 'PUT'
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+        }
+
+        const onChangeCheckbox = async(id) => {
+            //  change { title: "", "defaultContent": "<input onclick='onChangeChecbox();' type='checkbox'>"} on '#myTable' DataTable
+            //  to { title: "", "defaultContent": "<input onclick='onChangeChecbox();' type='checkbox' checked>"} on '#myTable' DataTable
+            //  and vice versa
+
+            $('#myTable').on('click', 'tbody td:nth-child(5)', function() {
+                // get id from first column
+                const id = this.parentElement.children[0].textContent
+                // check if the checkbox is checked or not
+                const checkbox = this.children[0];
+                if (checkbox.checked) {
+                    approveData(id);
+                } else {
+                    unApproveData(id);
+                }
+                
+
+                // if (this.defaultContent.includes('checked')) {
+                //     unApproveData(id);
+                //         this.defaultContent = "<input onclick='onChangeCheckbox();' type='checkbox'>"
+                // } else {
+                    
+                //     approveData(id);
+                //     this.defaultContent = "<input onclick='onChangeCheckbox();' type='checkbox' checked>"
+                // }
+                
+            })
+        }
+
+        // UNcomment kode dibawah untuk menghapus data table
+
+        // const deleteItem = async() => {
+        //     const response = await fetch(BASE_URI + 'sungai/delete/' + id, {
+        //         method: "DELETE", // or 'PUT'
+        //         headers: {
+        //             "Content-Type": "application/json",
+        //         },
+        //     });
+        // }
+        getData();
+        
+    </script>
+    <script src="./js/logic.js"></script>
+</body>
